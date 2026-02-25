@@ -650,7 +650,24 @@ export function registerRoutes(app: Express): void {
       if (!pkg) {
         return res.status(404).json({ error: `Package "${packageKey}" not found` });
       }
-      const result = await installService.installPackage(ctx, pkg, projectId);
+      // Auto-create a default project if none provided
+      let resolvedProjectId = projectId;
+      if (!resolvedProjectId) {
+        const storage = getTenantStorage(ctx);
+        const projects = await storage.getProjects();
+        if (projects.length > 0) {
+          resolvedProjectId = projects[0].id;
+        } else {
+          const newProject = await storage.createProject({
+            name: "Default",
+            description: "Auto-created default project",
+            githubRepo: null,
+            defaultBranch: null,
+          });
+          resolvedProjectId = newProject.id;
+        }
+      }
+      const result = await installService.installPackage(ctx, pkg, resolvedProjectId);
       res.json(result);
     } catch (err) {
       handleError(res, err);

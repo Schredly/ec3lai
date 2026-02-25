@@ -22,18 +22,21 @@ export function detectOrphans(
     connectedKeys.add(edge.to);
   }
 
-  for (const node of snapshot.nodes) {
-    if (!connectedKeys.has(node.key) && node.type === "record_type") {
-      // Only flag if not a base type referenced by others
-      const isBaseType = snapshot.edges.some(
-        (e) => e.to === node.key && e.type === "inherits"
-      );
-      if (!isBaseType && snapshot.nodes.length > 1) {
-        errors.push({
-          code: "ORPHAN_NODE",
-          message: `Node "${node.key}" has no connections`,
-          nodeKey: node.key,
-        });
+  // Only check for orphans when there are edges (i.e., an inheritance graph exists).
+  // Standalone record types without any edges are valid.
+  if (snapshot.edges.length > 0) {
+    for (const node of snapshot.nodes) {
+      if (!connectedKeys.has(node.key) && node.type === "record_type") {
+        const isBaseType = snapshot.edges.some(
+          (e) => e.to === node.key && e.type === "inherits"
+        );
+        if (!isBaseType) {
+          errors.push({
+            code: "ORPHAN_NODE",
+            message: `Node "${node.key}" has no connections`,
+            nodeKey: node.key,
+          });
+        }
       }
     }
   }
