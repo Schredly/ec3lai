@@ -56,14 +56,10 @@ export default function RecordDetail({ tenantSlug, recordId }: Props) {
   if (!instance) return <div style={{ padding: "2rem" }}>Record not found.</div>;
 
   return (
-    <div style={{ padding: "2rem", fontFamily: "system-ui" }}>
-      <nav style={{ marginBottom: "1rem", display: "flex", gap: "1rem" }}>
-        <Link href={`/t/${tenantSlug}/apps`}>Apps</Link>
-        <Link href={`/t/${tenantSlug}/vibe`}>Build</Link>
-        <Link href={`/t/${tenantSlug}/manage`}>Manage</Link>
-      </nav>
-
-      <h1>Record {recordId.slice(0, 8)}...</h1>
+    <div>
+      <h1 style={{ margin: "0 0 0.5rem", fontSize: "1.5rem", fontWeight: 700 }}>
+        Record {recordId.slice(0, 8)}...
+      </h1>
       <p style={{ color: "#666" }}>
         Type: {recordType?.name ?? instance.recordTypeId} &middot; Status:{" "}
         <strong>{instance.status}</strong>

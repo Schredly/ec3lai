@@ -44,7 +44,13 @@ export type DomainEventType =
   | "vibe.llm_token_stream_failed"
   | "vibe.draft_version_diff_computed"
   | "graph.promotion_notification_sent"
-  | "graph.promotion_notification_failed";
+  | "graph.promotion_notification_failed"
+  | "vibe.app_generated"
+  | "agent.registered"
+  | "agent.status_changed"
+  | "agent.execution_completed"
+  | "agent.execution_failed"
+  | "agent.version_installed";
 
 export interface DomainEvent {
   type: DomainEventType;
@@ -55,6 +61,7 @@ export interface DomainEvent {
   moduleId?: string;
   error?: { code?: string; message: string };
   affectedRecords?: Record<string, unknown> | unknown[] | null;
+  metadata?: Record<string, unknown>;
 }
 
 type EventHandler = (ctx: TenantContext, event: DomainEvent) => void | Promise<void>;

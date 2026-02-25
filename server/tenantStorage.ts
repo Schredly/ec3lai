@@ -20,6 +20,9 @@ import type {
   PromotionIntent,
   VibePackageDraft,
   VibePackageDraftVersion,
+  Agent,
+  AgentExecutionLog,
+  ExecutionTelemetryEvent,
 } from "../shared/schema.js";
 
 /**
@@ -205,7 +208,25 @@ export interface ITenantStorage {
     data: Omit<VibePackageDraftVersion, "id" | "tenantId" | "createdAt">
   ): Promise<VibePackageDraftVersion>;
 
+  // ─── Agents ─────────────────────────────────────────────────────────
+  getAgents(): Promise<Agent[]>;
+  getAgentById(id: string): Promise<Agent | undefined>;
+  createAgent(
+    data: Omit<Agent, "id" | "tenantId" | "createdAt" | "updatedAt" | "status" | "version" | "lastExecutionAt" | "lastExecutionStatus" | "boundPackageInstallId">
+  ): Promise<Agent>;
+  updateAgent(
+    id: string,
+    data: Partial<Pick<Agent, "name" | "description" | "status" | "subscribedEvents" | "executionPolicy" | "version" | "lastExecutionAt" | "lastExecutionStatus" | "boundPackageInstallId">>
+  ): Promise<Agent | undefined>;
+
+  // ─── Agent Execution Logs ──────────────────────────────────────────
+  getAgentExecutionLogs(agentId: string): Promise<AgentExecutionLog[]>;
+  createAgentExecutionLog(
+    data: Omit<AgentExecutionLog, "id" | "tenantId" | "createdAt">
+  ): Promise<AgentExecutionLog>;
+
   // ─── Telemetry ──────────────────────────────────────────────────────
+  getTelemetryEvents(since?: Date): Promise<ExecutionTelemetryEvent[]>;
   createTelemetryEvent(data: {
     eventType: string;
     entityType?: string;

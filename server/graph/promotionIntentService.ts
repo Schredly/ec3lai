@@ -2,6 +2,7 @@ import type { TenantContext, PromotionIntent } from "../../shared/schema.js";
 import { getTenantStorage } from "../tenantStorage.js";
 import { emitDomainEvent } from "../services/domainEventService.js";
 import { ServiceError } from "../services/recordTypeService.js";
+import { bindAgentToVersion } from "../services/agentRegistryService.js";
 
 /**
  * O30-O34: Intent state machine: draft → previewed → approved → executed
@@ -84,6 +85,11 @@ export async function transitionIntent(
     throw new ServiceError("Promotion intent not found", 404);
   }
 
+  // Sprint 4: When promotion is executed, bind agents to installed versions
+  if (newStatus === "executed") {
+    await bindAgentsOnPromotion(ctx, storage);
+  }
+
   const eventTypeMap: Record<string, any> = {
     previewed: "graph.promotion_intent_previewed",
     approved: "graph.promotion_intent_approved",
@@ -98,4 +104,29 @@ export async function transitionIntent(
   });
 
   return updated;
+}
+
+/**
+ * Sprint 4: On promotion execution, bind all agents linked to installed packages
+ * to their latest package install version.
+ */
+async function bindAgentsOnPromotion(
+  ctx: TenantContext,
+  storage: ReturnType<typeof getTenantStorage>
+) {
+  const agents = await storage.getAgents();
+  const packages = await storage.getGraphPackageInstalls();
+
+  for (const agent of agents) {
+    if (!agent.appId) continue;
+
+    // Find the package install this agent is linked to
+    const pkg = packages.find((p) => p.id === agent.appId);
+    if (!pkg) continue;
+
+    // Bind agent to the package install if not already bound
+    if (agent.boundPackageInstallId !== pkg.id) {
+      await bindAgentToVersion(ctx, agent.id, pkg.id);
+    }
+  }
 }

@@ -753,6 +753,61 @@ export const scheduledJobs = pgTable(
   }
 );
 
+// ─── Agents ────────────────────────────────────────────────────────────────
+
+export const agents = pgTable(
+  "agents",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id),
+    appId: uuid("app_id").references(() => graphPackageInstalls.id),
+    boundPackageInstallId: uuid("bound_package_install_id").references(
+      () => graphPackageInstalls.id
+    ),
+    name: text("name").notNull(),
+    description: text("description"),
+    status: varchar("status", { length: 50 }).notNull().default("inactive"),
+    subscribedEvents: jsonb("subscribed_events").notNull().default([]),
+    executionPolicy: jsonb("execution_policy").notNull().default({}),
+    version: integer("version").notNull().default(1),
+    lastExecutionAt: timestamp("last_execution_at"),
+    lastExecutionStatus: varchar("last_execution_status", { length: 50 }),
+    createdBy: varchar("created_by", { length: 255 }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("agents_tenant_idx").on(table.tenantId),
+    index("agents_tenant_status_idx").on(table.tenantId, table.status),
+  ]
+);
+
+export const agentExecutionLogs = pgTable(
+  "agent_execution_logs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id),
+    agentId: uuid("agent_id")
+      .notNull()
+      .references(() => agents.id),
+    eventType: varchar("event_type", { length: 100 }).notNull(),
+    status: varchar("status", { length: 50 }).notNull(),
+    durationMs: integer("duration_ms"),
+    input: jsonb("input").default({}),
+    output: jsonb("output").default({}),
+    error: text("error"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("agent_exec_logs_agent_idx").on(table.agentId),
+    index("agent_exec_logs_tenant_idx").on(table.tenantId),
+  ]
+);
+
 // ─── Shared Types ───────────────────────────────────────────────────────────
 
 export type Tenant = typeof tenants.$inferSelect;
@@ -798,6 +853,11 @@ export type PromotionIntent = typeof promotionIntents.$inferSelect;
 
 export type VibePackageDraft = typeof vibePackageDrafts.$inferSelect;
 export type VibePackageDraftVersion = typeof vibePackageDraftVersions.$inferSelect;
+
+export type ExecutionTelemetryEvent = typeof executionTelemetryEvents.$inferSelect;
+
+export type Agent = typeof agents.$inferSelect;
+export type AgentExecutionLog = typeof agentExecutionLogs.$inferSelect;
 
 // ─── Enums / Constants ──────────────────────────────────────────────────────
 

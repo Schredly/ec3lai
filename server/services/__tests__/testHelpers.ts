@@ -175,7 +175,27 @@ export function createMockStorage(overrides?: Partial<ITenantStorage>): ITenantS
     getVibeDraftVersions: vi.fn().mockResolvedValue([]),
     createVibeDraftVersion: vi.fn().mockResolvedValue({} as any),
 
+    getTelemetryEvents: vi.fn().mockResolvedValue([]),
     createTelemetryEvent: vi.fn().mockResolvedValue(undefined),
+
+    getAgents: vi.fn().mockResolvedValue([]),
+    getAgentById: vi.fn().mockResolvedValue(undefined),
+    createAgent: vi.fn().mockImplementation(async (data) => ({
+      id: "agent-1",
+      tenantId: "tenant-uuid-1",
+      status: "inactive",
+      boundPackageInstallId: null,
+      version: 1,
+      lastExecutionAt: null,
+      lastExecutionStatus: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      ...data,
+    })),
+    updateAgent: vi.fn().mockResolvedValue(undefined),
+
+    getAgentExecutionLogs: vi.fn().mockResolvedValue([]),
+    createAgentExecutionLog: vi.fn().mockResolvedValue({} as any),
 
     ...overrides,
   };

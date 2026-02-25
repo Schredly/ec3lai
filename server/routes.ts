@@ -22,6 +22,7 @@ import * as installService from "./graph/installService.js";
 import * as promotionService from "./graph/promotionService.js";
 import * as promotionIntentService from "./graph/promotionIntentService.js";
 import { builtinPackages } from "./graph/builtinPackages.js";
+import { analyzePackage } from "./graph/graphRefactorService.js";
 import * as vibeService from "./vibe/vibeService.js";
 import * as vibeDraftService from "./vibe/vibeDraftService.js";
 import * as repairService from "./vibe/repairService.js";
@@ -31,7 +32,11 @@ import * as tokenStreamService from "./vibe/tokenStreamService.js";
 import * as draftVersionDiffService from "./vibe/draftVersionDiffService.js";
 import { listTemplates, getTemplatePrompt } from "./vibe/vibeTemplates.js";
 import { applyDraftPatchOps } from "./vibe/draftPatchOps.js";
+import * as ruleBasedGenerator from "./vibe/ruleBasedGenerator.js";
 import { assertNotAgent, AgentGuardError } from "./services/agentGuardService.js";
+import * as agentRegistryService from "./services/agentRegistryService.js";
+import * as agentExecutionService from "./services/agentExecutionService.js";
+import * as dashboardService from "./services/dashboardService.js";
 import { ServiceError } from "./services/recordTypeService.js";
 import { RbacError } from "./services/rbacService.js";
 import { executePatchOps } from "./executors/patchOpExecutor.js";
@@ -699,6 +704,98 @@ export function registerRoutes(app: Express): void {
     );
   });
 
+  // ─── Agents (Sprint 3) ─────────────────────────────────────────────
+
+  app.get("/api/agents", async (req: Request, res: Response) => {
+    try {
+      const ctx = req.tenantContext!;
+      const agents = await agentRegistryService.getAgents(ctx);
+      res.json(agents);
+    } catch (err) {
+      handleError(res, err);
+    }
+  });
+
+  app.get("/api/agents/:id", async (req: Request, res: Response) => {
+    try {
+      const ctx = req.tenantContext!;
+      const agent = await agentRegistryService.getAgentById(ctx, param(req, "id"));
+      if (!agent) return res.status(404).json({ error: "Agent not found" });
+      res.json(agent);
+    } catch (err) {
+      handleError(res, err);
+    }
+  });
+
+  app.post("/api/agents", async (req: Request, res: Response) => {
+    try {
+      const ctx = req.tenantContext!;
+      const agent = await agentRegistryService.createAgent(ctx, req.body);
+      res.status(201).json(agent);
+    } catch (err) {
+      handleError(res, err);
+    }
+  });
+
+  app.post("/api/agents/:id/status", async (req: Request, res: Response) => {
+    try {
+      const ctx = req.tenantContext!;
+      const { status } = req.body;
+      const agent = await agentRegistryService.updateAgentStatus(ctx, param(req, "id"), status);
+      res.json(agent);
+    } catch (err) {
+      handleError(res, err);
+    }
+  });
+
+  app.post("/api/agents/:id/subscriptions", async (req: Request, res: Response) => {
+    try {
+      const ctx = req.tenantContext!;
+      const { subscribedEvents } = req.body;
+      const agent = await agentRegistryService.updateAgentSubscriptions(
+        ctx,
+        param(req, "id"),
+        subscribedEvents
+      );
+      res.json(agent);
+    } catch (err) {
+      handleError(res, err);
+    }
+  });
+
+  app.get("/api/agents/:id/logs", async (req: Request, res: Response) => {
+    try {
+      const ctx = req.tenantContext!;
+      const logs = await agentExecutionService.getAgentExecutionLogs(ctx, param(req, "id"));
+      res.json(logs);
+    } catch (err) {
+      handleError(res, err);
+    }
+  });
+
+  app.post("/api/agents/:id/bind", async (req: Request, res: Response) => {
+    try {
+      const ctx = req.tenantContext!;
+      const { packageInstallId } = req.body;
+      const updated = await agentRegistryService.bindAgentToVersion(ctx, param(req, "id"), packageInstallId);
+      res.json(updated);
+    } catch (err) {
+      handleError(res, err);
+    }
+  });
+
+  // ─── Dashboard ─────────────────────────────────────────────────────
+
+  app.get("/api/dashboard/stats", async (req: Request, res: Response) => {
+    try {
+      const ctx = req.tenantContext!;
+      const stats = await dashboardService.getDashboardStats(ctx);
+      res.json(stats);
+    } catch (err) {
+      handleError(res, err);
+    }
+  });
+
   // ─── Environments ───────────────────────────────────────────────────
 
   app.get("/api/environments", async (req: Request, res: Response) => {
@@ -771,6 +868,48 @@ export function registerRoutes(app: Express): void {
   });
 
   // ─── Vibe: Generate ─────────────────────────────────────────────────
+
+  // ─── Rule-based app generation (Sprint 2) ───────────────────────────
+
+  app.post("/api/vibe/generate-app", async (req: Request, res: Response) => {
+    try {
+      const ctx = req.tenantContext!;
+      const { prompt } = req.body;
+      if (!prompt || typeof prompt !== "string" || !prompt.trim()) {
+        return res.status(400).json({ error: "prompt is required" });
+      }
+      const result = await ruleBasedGenerator.generateApp(ctx, prompt);
+      res.json(result);
+    } catch (err) {
+      handleError(res, err);
+    }
+  });
+
+  app.post("/api/vibe/parse-prompt", async (req: Request, res: Response) => {
+    try {
+      const { prompt } = req.body;
+      if (!prompt || typeof prompt !== "string" || !prompt.trim()) {
+        return res.status(400).json({ error: "prompt is required" });
+      }
+      const intent = ruleBasedGenerator.parsePrompt(prompt);
+      res.json(intent);
+    } catch (err) {
+      handleError(res, err);
+    }
+  });
+
+  app.post("/api/graph/analyze", async (req: Request, res: Response) => {
+    try {
+      const { packageJson } = req.body;
+      if (!packageJson) {
+        return res.status(400).json({ error: "packageJson is required" });
+      }
+      const suggestions = analyzePackage(packageJson);
+      res.json({ suggestions });
+    } catch (err) {
+      handleError(res, err);
+    }
+  });
 
   app.post("/api/vibe/generate", async (req: Request, res: Response) => {
     try {

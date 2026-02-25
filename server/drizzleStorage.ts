@@ -1,4 +1,4 @@
-import { eq, and } from "drizzle-orm";
+import { eq, and, gte } from "drizzle-orm";
 import { db } from "./db.js";
 import * as s from "../shared/schema.js";
 import type { IStorage } from "./storage.js";
@@ -916,7 +916,74 @@ export class DrizzleTenantStorage implements ITenantStorage {
     return row;
   }
 
+  // ─── Agents ─────────────────────────────────────────────────────────────
+
+  async getAgents() {
+    return db.select().from(s.agents).where(eq(s.agents.tenantId, this.tenantId));
+  }
+
+  async getAgentById(id: string) {
+    const [row] = await db
+      .select()
+      .from(s.agents)
+      .where(and(eq(s.agents.id, id), eq(s.agents.tenantId, this.tenantId)))
+      .limit(1);
+    return row;
+  }
+
+  async createAgent(
+    data: Omit<s.Agent, "id" | "tenantId" | "createdAt" | "updatedAt" | "status" | "version" | "lastExecutionAt" | "lastExecutionStatus">
+  ) {
+    const [row] = await db
+      .insert(s.agents)
+      .values({ ...data, tenantId: this.tenantId })
+      .returning();
+    return row;
+  }
+
+  async updateAgent(
+    id: string,
+    data: Partial<Pick<s.Agent, "name" | "description" | "status" | "subscribedEvents" | "executionPolicy" | "version" | "lastExecutionAt" | "lastExecutionStatus" | "boundPackageInstallId">>
+  ) {
+    const [row] = await db
+      .update(s.agents)
+      .set({ ...data, updatedAt: new Date() })
+      .where(and(eq(s.agents.id, id), eq(s.agents.tenantId, this.tenantId)))
+      .returning();
+    return row;
+  }
+
+  // ─── Agent Execution Logs ──────────────────────────────────────────────
+
+  async getAgentExecutionLogs(agentId: string) {
+    return db
+      .select()
+      .from(s.agentExecutionLogs)
+      .where(and(eq(s.agentExecutionLogs.agentId, agentId), eq(s.agentExecutionLogs.tenantId, this.tenantId)));
+  }
+
+  async createAgentExecutionLog(
+    data: Omit<s.AgentExecutionLog, "id" | "tenantId" | "createdAt">
+  ) {
+    const [row] = await db
+      .insert(s.agentExecutionLogs)
+      .values({ ...data, tenantId: this.tenantId })
+      .returning();
+    return row;
+  }
+
   // ─── Telemetry ─────────────────────────────────────────────────────────
+
+  async getTelemetryEvents(since?: Date) {
+    const conditions = [eq(s.executionTelemetryEvents.tenantId, this.tenantId)];
+    if (since) {
+      conditions.push(gte(s.executionTelemetryEvents.createdAt, since));
+    }
+    return db
+      .select()
+      .from(s.executionTelemetryEvents)
+      .where(and(...conditions));
+  }
 
   async createTelemetryEvent(data: {
     eventType: string;

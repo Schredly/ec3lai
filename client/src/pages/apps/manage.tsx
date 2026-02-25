@@ -97,20 +97,11 @@ export default function ManageApps({ tenantSlug }: Props) {
     },
   });
 
-  if (rtLoading) return <div style={{ padding: "2rem" }}>Loading...</div>;
+  if (rtLoading) return <p style={{ color: "#888" }}>Loading...</p>;
 
   return (
-    <div style={{ padding: "2rem", fontFamily: "system-ui" }}>
-      <nav style={{ marginBottom: "1rem", display: "flex", gap: "1rem" }}>
-        <Link href={`/t/${tenantSlug}/apps`}>Apps</Link>
-        <Link href={`/t/${tenantSlug}/vibe`}>Build</Link>
-        <Link href={`/t/${tenantSlug}/manage`}>
-          <strong>Manage</strong>
-        </Link>
-      </nav>
-
-      {/* Installed Apps */}
-      <h1>Manage Apps</h1>
+    <div>
+      <h1 style={{ margin: "0 0 1rem", fontSize: "1.5rem", fontWeight: 700 }}>Manage</h1>
 
       <section style={{ marginBottom: "2rem" }}>
         <h2>Installed Record Types</h2>
