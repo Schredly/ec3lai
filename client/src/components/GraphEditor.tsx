@@ -153,40 +153,34 @@ export default function GraphEditor({ packageJson, onSave, saving }: Props) {
   }
 
   return (
-    <div>
+    <div style={canvasWrap}>
+      {/* Grid background pattern */}
+      <div style={gridBg} />
+
       {/* Save bar */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", padding: "0.5rem 0.75rem", background: dirty ? "#fff8e6" : "#f8f9fb", borderRadius: "6px", border: `1px solid ${dirty ? "#ffc107" : "#e5e7eb"}` }}>
-        <span style={{ fontSize: "0.8rem", color: dirty ? "#856404" : "#888" }}>
+      <div style={saveBar(dirty)}>
+        <span style={{ fontSize: "0.8rem", color: dirty ? "#e0b030" : "#555" }}>
           {dirty ? "Unsaved changes" : "All changes saved"}
         </span>
         <button
           onClick={handleSave}
           disabled={!dirty || saving}
-          style={{
-            padding: "0.35rem 0.75rem",
-            borderRadius: "5px",
-            border: "none",
-            background: dirty ? "#6384ff" : "#e5e7eb",
-            color: dirty ? "#fff" : "#999",
-            fontWeight: 600,
-            fontSize: "0.8rem",
-            cursor: dirty ? "pointer" : "default",
-          }}
+          style={saveBtnStyle(dirty)}
         >
           {saving ? "Saving..." : "Save Changes"}
         </button>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", position: "relative", zIndex: 1 }}>
         {/* Left: Entities */}
         <div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.6rem" }}>
             <h3 style={sectionTitle}>Entities ({entities.length})</h3>
             <button onClick={addEntity} style={addBtnStyle}>+ Add Entity</button>
           </div>
 
           {entities.map((entity) => (
-            <div key={entity.key} style={{ border: "1px solid #e5e7eb", borderRadius: "8px", padding: "0.75rem", marginBottom: "0.5rem", background: editingEntity === entity.key ? "#fafbff" : "#fff" }}>
+            <div key={entity.key} style={nodeCard(editingEntity === entity.key)}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flex: 1 }}>
                   <NodeIcon type="entity" />
@@ -194,43 +188,50 @@ export default function GraphEditor({ packageJson, onSave, saving }: Props) {
                     <input
                       value={entity.name}
                       onChange={(e) => updateEntity(entity.key, { name: e.target.value })}
-                      style={{ fontWeight: 600, fontSize: "0.85rem", border: "1px solid #ddd", borderRadius: "4px", padding: "0.2rem 0.4rem", flex: 1 }}
+                      style={nodeInputStyle}
                     />
                   ) : (
-                    <span style={{ fontWeight: 600, fontSize: "0.85rem", cursor: "pointer" }} onClick={() => setEditingEntity(entity.key)}>
+                    <span style={{ fontWeight: 600, fontSize: "0.85rem", cursor: "pointer", color: "#e0e0f0" }} onClick={() => setEditingEntity(entity.key)}>
                       {entity.name}
                     </span>
                   )}
                 </div>
                 <div style={{ display: "flex", gap: "0.25rem" }}>
                   <button onClick={() => setEditingEntity(editingEntity === entity.key ? null : entity.key)} style={smallBtn}>{editingEntity === entity.key ? "Done" : "Edit"}</button>
-                  <button onClick={() => removeEntity(entity.key)} style={{ ...smallBtn, color: "#dc3545" }}>x</button>
+                  <button onClick={() => removeEntity(entity.key)} style={{ ...smallBtn, color: "#ff4444" }}>x</button>
                 </div>
               </div>
 
-              <div style={{ fontSize: "0.75rem", color: "#888", marginTop: "0.25rem" }}>
+              <div style={{ fontSize: "0.72rem", color: "#666", marginTop: "0.25rem" }}>
                 {entity.key} &middot; {entity.fields.length} fields
+              </div>
+
+              {/* Connector dots */}
+              <div style={connectorDots}>
+                {entity.fields.slice(0, 5).map((_, i) => (
+                  <div key={i} style={connectorDot} />
+                ))}
               </div>
 
               {/* Field editor */}
               {editingEntity === entity.key && (
-                <div style={{ marginTop: "0.5rem", borderTop: "1px solid #f0f0f0", paddingTop: "0.5rem" }}>
+                <div style={{ marginTop: "0.5rem", borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: "0.5rem" }}>
                   {entity.fields.map((field, fi) => (
                     <div key={fi} style={{ display: "flex", gap: "0.25rem", marginBottom: "0.25rem", alignItems: "center" }}>
                       <input
                         value={field.name}
                         onChange={(e) => updateField(entity.key, fi, { name: e.target.value })}
                         placeholder="Field name"
-                        style={{ flex: 1, padding: "0.25rem", fontSize: "0.8rem", border: "1px solid #ddd", borderRadius: "3px" }}
+                        style={fieldInputStyle}
                       />
                       <select
                         value={field.type}
                         onChange={(e) => updateField(entity.key, fi, { type: e.target.value })}
-                        style={{ padding: "0.25rem", fontSize: "0.8rem", border: "1px solid #ddd", borderRadius: "3px" }}
+                        style={fieldSelectStyle}
                       >
                         {FIELD_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
                       </select>
-                      <label style={{ fontSize: "0.7rem", display: "flex", alignItems: "center", gap: "0.15rem" }}>
+                      <label style={{ fontSize: "0.7rem", display: "flex", alignItems: "center", gap: "0.15rem", color: "#888" }}>
                         <input
                           type="checkbox"
                           checked={field.required ?? false}
@@ -238,10 +239,10 @@ export default function GraphEditor({ packageJson, onSave, saving }: Props) {
                         />
                         Req
                       </label>
-                      <button onClick={() => removeField(entity.key, fi)} style={{ ...smallBtn, color: "#dc3545", padding: "0.15rem 0.3rem" }}>x</button>
+                      <button onClick={() => removeField(entity.key, fi)} style={{ ...smallBtn, color: "#ff4444", padding: "0.15rem 0.3rem" }}>x</button>
                     </div>
                   ))}
-                  <button onClick={() => addField(entity.key)} style={{ ...addBtnStyle, fontSize: "0.75rem", padding: "0.2rem 0.5rem" }}>+ Field</button>
+                  <button onClick={() => addField(entity.key)} style={{ ...addBtnStyle, fontSize: "0.72rem", padding: "0.2rem 0.5rem" }}>+ Field</button>
                 </div>
               )}
             </div>
@@ -250,13 +251,13 @@ export default function GraphEditor({ packageJson, onSave, saving }: Props) {
 
         {/* Right: Workflows */}
         <div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.6rem" }}>
             <h3 style={sectionTitle}>Workflows ({workflows.length})</h3>
             <button onClick={addWorkflow} style={addBtnStyle}>+ Add Workflow</button>
           </div>
 
           {workflows.map((wf, wi) => (
-            <div key={wi} style={{ border: "1px solid #e5e7eb", borderRadius: "8px", padding: "0.75rem", marginBottom: "0.5rem", background: editingWorkflow === wi ? "#fafbff" : "#fff" }}>
+            <div key={wi} style={nodeCard(editingWorkflow === wi)}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flex: 1 }}>
                   <NodeIcon type="workflow" />
@@ -264,44 +265,56 @@ export default function GraphEditor({ packageJson, onSave, saving }: Props) {
                     <input
                       value={wf.name}
                       onChange={(e) => updateWorkflow(wi, { name: e.target.value })}
-                      style={{ fontWeight: 600, fontSize: "0.85rem", border: "1px solid #ddd", borderRadius: "4px", padding: "0.2rem 0.4rem", flex: 1 }}
+                      style={nodeInputStyle}
                     />
                   ) : (
-                    <span style={{ fontWeight: 600, fontSize: "0.85rem", cursor: "pointer" }} onClick={() => setEditingWorkflow(wi)}>
+                    <span style={{ fontWeight: 600, fontSize: "0.85rem", cursor: "pointer", color: "#e0e0f0" }} onClick={() => setEditingWorkflow(wi)}>
                       {wf.name}
                     </span>
                   )}
                 </div>
                 <div style={{ display: "flex", gap: "0.25rem" }}>
                   <button onClick={() => setEditingWorkflow(editingWorkflow === wi ? null : wi)} style={smallBtn}>{editingWorkflow === wi ? "Done" : "Edit"}</button>
-                  <button onClick={() => removeWorkflow(wi)} style={{ ...smallBtn, color: "#dc3545" }}>x</button>
+                  <button onClick={() => removeWorkflow(wi)} style={{ ...smallBtn, color: "#ff4444" }}>x</button>
                 </div>
               </div>
 
-              <div style={{ fontSize: "0.75rem", color: "#888", marginTop: "0.25rem" }}>
+              <div style={{ fontSize: "0.72rem", color: "#666", marginTop: "0.25rem" }}>
                 {wf.steps.length} steps{wf.triggerType ? ` \u00b7 trigger: ${wf.triggerType}` : ""}
               </div>
 
+              {/* Step connector visualization */}
+              {wf.steps.length > 0 && (
+                <div style={stepFlow}>
+                  {wf.steps.map((step, si) => (
+                    <div key={si} style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                      <div style={stepNode(step.stepType)}>{si + 1}</div>
+                      {si < wf.steps.length - 1 && <div style={stepConnector} />}
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {/* Step editor */}
               {editingWorkflow === wi && (
-                <div style={{ marginTop: "0.5rem", borderTop: "1px solid #f0f0f0", paddingTop: "0.5rem" }}>
+                <div style={{ marginTop: "0.5rem", borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: "0.5rem" }}>
                   {wf.steps.map((step, si) => (
                     <div key={si} style={{ display: "flex", gap: "0.25rem", marginBottom: "0.25rem", alignItems: "center" }}>
-                      <span style={{ fontSize: "0.7rem", color: "#888", width: "20px" }}>{si + 1}</span>
+                      <span style={{ fontSize: "0.7rem", color: "#555", width: "20px" }}>{si + 1}</span>
                       <select
                         value={step.stepType}
                         onChange={(e) => {
                           const steps = wf.steps.map((s, i) => i === si ? { ...s, stepType: e.target.value } : s);
                           updateWorkflow(wi, { steps });
                         }}
-                        style={{ flex: 1, padding: "0.25rem", fontSize: "0.8rem", border: "1px solid #ddd", borderRadius: "3px" }}
+                        style={fieldSelectStyle}
                       >
                         {STEP_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
                       </select>
-                      <button onClick={() => removeStep(wi, si)} style={{ ...smallBtn, color: "#dc3545", padding: "0.15rem 0.3rem" }}>x</button>
+                      <button onClick={() => removeStep(wi, si)} style={{ ...smallBtn, color: "#ff4444", padding: "0.15rem 0.3rem" }}>x</button>
                     </div>
                   ))}
-                  <button onClick={() => addStep(wi)} style={{ ...addBtnStyle, fontSize: "0.75rem", padding: "0.2rem 0.5rem" }}>+ Step</button>
+                  <button onClick={() => addStep(wi)} style={{ ...addBtnStyle, fontSize: "0.72rem", padding: "0.2rem 0.5rem" }}>+ Step</button>
                 </div>
               )}
             </div>
@@ -310,15 +323,15 @@ export default function GraphEditor({ packageJson, onSave, saving }: Props) {
       </div>
 
       {/* Bottom: Events & Roles */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginTop: "1rem" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginTop: "1rem", position: "relative", zIndex: 1 }}>
         {/* Events */}
-        <div style={{ border: "1px solid #e5e7eb", borderRadius: "8px", padding: "0.75rem" }}>
+        <div style={bottomCard}>
           <h3 style={sectionTitle}>Events ({events.length})</h3>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.25rem", marginBottom: "0.5rem" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.3rem", marginTop: "0.5rem", marginBottom: "0.5rem" }}>
             {events.map((ev, i) => (
-              <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: "0.25rem", padding: "0.15rem 0.4rem", background: "#f0f0f0", borderRadius: "3px", fontSize: "0.75rem" }}>
-                <code>{ev}</code>
-                <button onClick={() => removeEvent(i)} style={{ border: "none", background: "none", cursor: "pointer", fontSize: "0.65rem", color: "#999", padding: 0 }}>x</button>
+              <span key={i} style={eventTag}>
+                <code style={{ fontSize: "0.72rem" }}>{ev}</code>
+                <button onClick={() => removeEvent(i)} style={tagRemoveBtn}>x</button>
               </span>
             ))}
           </div>
@@ -331,19 +344,19 @@ export default function GraphEditor({ packageJson, onSave, saving }: Props) {
             }}
             style={{ display: "flex", gap: "0.25rem" }}
           >
-            <input name="event" placeholder="e.g. employee.created" style={{ flex: 1, padding: "0.25rem", fontSize: "0.8rem", border: "1px solid #ddd", borderRadius: "3px" }} />
+            <input name="event" placeholder="e.g. employee.created" style={fieldInputStyle} />
             <button type="submit" style={addBtnStyle}>+</button>
           </form>
         </div>
 
         {/* Roles */}
-        <div style={{ border: "1px solid #e5e7eb", borderRadius: "8px", padding: "0.75rem" }}>
+        <div style={bottomCard}>
           <h3 style={sectionTitle}>Roles ({roles.length})</h3>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.25rem", marginBottom: "0.5rem" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.3rem", marginTop: "0.5rem", marginBottom: "0.5rem" }}>
             {roles.map((role, i) => (
-              <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: "0.25rem", padding: "0.15rem 0.4rem", background: "#e8f4fd", borderRadius: "3px", fontSize: "0.75rem", color: "#004085" }}>
+              <span key={i} style={roleTag}>
                 {role}
-                <button onClick={() => removeRole(i)} style={{ border: "none", background: "none", cursor: "pointer", fontSize: "0.65rem", color: "#999", padding: 0 }}>x</button>
+                <button onClick={() => removeRole(i)} style={tagRemoveBtn}>x</button>
               </span>
             ))}
           </div>
@@ -356,7 +369,7 @@ export default function GraphEditor({ packageJson, onSave, saving }: Props) {
             }}
             style={{ display: "flex", gap: "0.25rem" }}
           >
-            <input name="role" placeholder="e.g. manager" style={{ flex: 1, padding: "0.25rem", fontSize: "0.8rem", border: "1px solid #ddd", borderRadius: "3px" }} />
+            <input name="role" placeholder="e.g. manager" style={fieldInputStyle} />
             <button type="submit" style={addBtnStyle}>+</button>
           </form>
         </div>
@@ -366,50 +379,237 @@ export default function GraphEditor({ packageJson, onSave, saving }: Props) {
 }
 
 function NodeIcon({ type }: { type: "entity" | "workflow" }) {
-  const bg = type === "entity" ? "#e8f4fd" : "#fef3cd";
-  const fg = type === "entity" ? "#004085" : "#856404";
-  const label = type === "entity" ? "E" : "W";
+  const colors: Record<string, { bg: string; fg: string; label: string }> = {
+    entity: { bg: "rgba(99,132,255,0.2)", fg: "#6384ff", label: "E" },
+    workflow: { bg: "rgba(255,200,50,0.2)", fg: "#e0b030", label: "W" },
+  };
+  const c = colors[type];
   return (
     <span style={{
       display: "inline-flex",
       alignItems: "center",
       justifyContent: "center",
-      width: "22px",
-      height: "22px",
-      borderRadius: "4px",
-      background: bg,
-      color: fg,
+      width: "24px",
+      height: "24px",
+      borderRadius: "6px",
+      background: c.bg,
+      color: c.fg,
       fontWeight: 700,
       fontSize: "0.7rem",
+      flexShrink: 0,
     }}>
-      {label}
+      {c.label}
     </span>
   );
 }
 
+/* --- Styles --- */
+
+const canvasWrap: React.CSSProperties = {
+  position: "relative",
+  minHeight: "100%",
+};
+
+const gridBg: React.CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  backgroundImage: `
+    linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)
+  `,
+  backgroundSize: "32px 32px",
+  pointerEvents: "none",
+  zIndex: 0,
+};
+
+function saveBar(dirty: boolean): React.CSSProperties {
+  return {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "1rem",
+    padding: "0.5rem 0.75rem",
+    background: dirty ? "rgba(255,200,50,0.08)" : "rgba(255,255,255,0.03)",
+    borderRadius: "10px",
+    border: `1px solid ${dirty ? "rgba(255,200,50,0.2)" : "rgba(255,255,255,0.06)"}`,
+    position: "relative",
+    zIndex: 1,
+  };
+}
+
+function saveBtnStyle(dirty: boolean): React.CSSProperties {
+  return {
+    padding: "0.35rem 0.75rem",
+    borderRadius: "6px",
+    border: "none",
+    background: dirty ? "#6384ff" : "rgba(255,255,255,0.06)",
+    color: dirty ? "#fff" : "#555",
+    fontWeight: 600,
+    fontSize: "0.8rem",
+    cursor: dirty ? "pointer" : "default",
+    transition: "all 0.2s ease",
+  };
+}
+
+function nodeCard(active: boolean): React.CSSProperties {
+  return {
+    background: active ? "rgba(99,132,255,0.06)" : "rgba(255,255,255,0.03)",
+    borderRadius: "12px",
+    border: `1px solid ${active ? "rgba(99,132,255,0.2)" : "rgba(255,255,255,0.06)"}`,
+    boxShadow: active ? "0 4px 20px rgba(99,132,255,0.1)" : "0 2px 8px rgba(0,0,0,0.15)",
+    padding: "0.75rem",
+    marginBottom: "0.6rem",
+    transition: "all 0.2s ease",
+  };
+}
+
+const connectorDots: React.CSSProperties = {
+  display: "flex",
+  gap: "4px",
+  marginTop: "0.4rem",
+};
+
+const connectorDot: React.CSSProperties = {
+  width: "4px",
+  height: "4px",
+  borderRadius: "50%",
+  background: "rgba(99,132,255,0.4)",
+};
+
+const stepFlow: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "0.15rem",
+  marginTop: "0.4rem",
+  padding: "0.3rem 0",
+};
+
+function stepNode(stepType: string): React.CSSProperties {
+  const colors: Record<string, string> = {
+    approval: "#6384ff",
+    notification: "#28a745",
+    assignment: "#e0b030",
+    validation: "#ff6b6b",
+    transformation: "#a855f7",
+    escalation: "#ff4444",
+  };
+  return {
+    width: "20px",
+    height: "20px",
+    borderRadius: "50%",
+    background: `${colors[stepType] ?? "#555"}22`,
+    border: `2px solid ${colors[stepType] ?? "#555"}`,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "0.6rem",
+    fontWeight: 700,
+    color: colors[stepType] ?? "#555",
+    flexShrink: 0,
+  };
+}
+
+const stepConnector: React.CSSProperties = {
+  width: "16px",
+  height: "2px",
+  background: "linear-gradient(90deg, rgba(99,132,255,0.3), rgba(99,132,255,0.15))",
+  borderRadius: "1px",
+};
+
+const bottomCard: React.CSSProperties = {
+  background: "rgba(255,255,255,0.03)",
+  borderRadius: "12px",
+  border: "1px solid rgba(255,255,255,0.06)",
+  padding: "0.75rem",
+};
+
+const eventTag: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "0.3rem",
+  padding: "0.2rem 0.5rem",
+  background: "rgba(40,167,69,0.12)",
+  borderRadius: "6px",
+  color: "#28a745",
+};
+
+const roleTag: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "0.3rem",
+  padding: "0.2rem 0.5rem",
+  background: "rgba(99,132,255,0.12)",
+  borderRadius: "6px",
+  fontSize: "0.75rem",
+  color: "#6384ff",
+};
+
+const tagRemoveBtn: React.CSSProperties = {
+  border: "none",
+  background: "none",
+  cursor: "pointer",
+  fontSize: "0.65rem",
+  color: "#666",
+  padding: 0,
+};
+
 const sectionTitle: React.CSSProperties = {
   margin: 0,
-  fontSize: "0.8rem",
+  fontSize: "0.82rem",
   fontWeight: 700,
-  color: "#333",
+  color: "#e0e0f0",
 };
 
 const addBtnStyle: React.CSSProperties = {
-  padding: "0.25rem 0.5rem",
-  borderRadius: "4px",
-  border: "1px solid #6384ff",
-  background: "#fff",
+  padding: "0.25rem 0.6rem",
+  borderRadius: "6px",
+  border: "1px solid rgba(99,132,255,0.3)",
+  background: "rgba(99,132,255,0.1)",
   color: "#6384ff",
   cursor: "pointer",
   fontSize: "0.75rem",
   fontWeight: 600,
+  transition: "all 0.15s ease",
 };
 
 const smallBtn: React.CSSProperties = {
   padding: "0.15rem 0.4rem",
-  borderRadius: "3px",
-  border: "1px solid #ddd",
-  background: "#fff",
+  borderRadius: "4px",
+  border: "1px solid rgba(255,255,255,0.08)",
+  background: "rgba(255,255,255,0.04)",
+  color: "#888",
   cursor: "pointer",
   fontSize: "0.7rem",
+};
+
+const nodeInputStyle: React.CSSProperties = {
+  fontWeight: 600,
+  fontSize: "0.85rem",
+  border: "1px solid rgba(255,255,255,0.12)",
+  borderRadius: "6px",
+  padding: "0.2rem 0.4rem",
+  flex: 1,
+  background: "rgba(255,255,255,0.04)",
+  color: "#e0e0f0",
+  outline: "none",
+};
+
+const fieldInputStyle: React.CSSProperties = {
+  flex: 1,
+  padding: "0.25rem 0.4rem",
+  fontSize: "0.8rem",
+  border: "1px solid rgba(255,255,255,0.08)",
+  borderRadius: "4px",
+  background: "rgba(255,255,255,0.04)",
+  color: "#e0e0f0",
+  outline: "none",
+};
+
+const fieldSelectStyle: React.CSSProperties = {
+  padding: "0.25rem 0.3rem",
+  fontSize: "0.8rem",
+  border: "1px solid rgba(255,255,255,0.08)",
+  borderRadius: "4px",
+  background: "rgba(255,255,255,0.06)",
+  color: "#e0e0f0",
 };

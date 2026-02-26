@@ -1,7 +1,7 @@
-import { Route, Switch, Redirect } from "wouter";
-import Layout from "./components/Layout";
-import Sidebar from "./components/Sidebar";
-import ContextPanel from "./components/ContextPanel";
+import { Route, Switch, Redirect, useLocation } from "wouter";
+import { useState, useCallback } from "react";
+import WorkspaceLayout from "./components/WorkspaceLayout";
+import WorkspaceTabs from "./components/WorkspaceTabs";
 import AppDashboard from "./pages/apps/dashboard";
 import RecordList from "./pages/apps/record-list";
 import RecordDetail from "./pages/apps/record-detail";
@@ -9,107 +9,164 @@ import ManageApps from "./pages/apps/manage";
 import VibeStudio from "./pages/vibe-studio";
 import AgentPanel from "./pages/agents/agent-panel";
 import Dashboard from "./pages/dashboard";
+import GraphEditor from "./components/GraphEditor";
+import CommandPalette, { useCommandPaletteShortcut } from "./components/CommandPalette";
 
-/**
- * Wraps a tenant page in the 3-panel layout.
- */
-function TenantLayout({
-  tenantSlug,
-  children,
-  showContext = false,
-}: {
-  tenantSlug: string;
-  children: React.ReactNode;
-  showContext?: boolean;
-}) {
+const WORKSPACE_TABS = [
+  { key: "builder", label: "Builder" },
+  { key: "graph", label: "Graph" },
+  { key: "agents", label: "Agents" },
+  { key: "versions", label: "Versions" },
+];
+
+function Workspace({ tenantSlug: initialTenantSlug }: { tenantSlug: string }) {
+  const [, navigate] = useLocation();
+  const [tenantSlug, setTenantSlug] = useState(initialTenantSlug);
+  const [section, setSection] = useState("apps");
+  const [activeTab, setActiveTab] = useState("builder");
+  const [cmdOpen, setCmdOpen] = useState(false);
+
+  // Track record navigation
+  const [appKey, setAppKey] = useState<string | null>(null);
+  const [rtKey, setRtKey] = useState<string | null>(null);
+  const [recordId, setRecordId] = useState<string | null>(null);
+
+  const handleNavigate = useCallback((target: string) => {
+    // Reset record drill-in when switching sections
+    setRecordId(null);
+    setAppKey(null);
+    setRtKey(null);
+
+    if (target.startsWith("app:")) {
+      const key = target.slice(4);
+      setSection("apps");
+      setAppKey(key);
+      setRtKey(key);
+      return;
+    }
+    setSection(target);
+  }, []);
+
+  const handleCommandPalette = useCallback(() => setCmdOpen(true), []);
+
+  const handleSwitchTenant = useCallback((slug: string) => {
+    setTenantSlug(slug);
+    navigate(`/t/${slug}/apps`);
+    setSection("apps");
+    setAppKey(null);
+    setRtKey(null);
+    setRecordId(null);
+  }, [navigate]);
+
+  // Global ⌘K shortcut
+  useCommandPaletteShortcut(handleCommandPalette);
+
+  // Determine effective tab for context panel
+  const effectiveTab = section === "builder" || section === "graph" || section === "agents" || section === "dashboard" || section === "manage"
+    ? section === "manage" ? "versions" : section
+    : activeTab;
+
   return (
-    <Layout
-      sidebar={<Sidebar tenantSlug={tenantSlug} />}
-      main={children}
-      context={showContext ? <ContextPanel tenantSlug={tenantSlug} /> : undefined}
-    />
+    <>
+      <WorkspaceLayout
+        tenantSlug={tenantSlug}
+        activeSection={section}
+        activeTab={effectiveTab}
+        onNavigate={handleNavigate}
+        onCommandPalette={handleCommandPalette}
+      >
+        {/* Dashboard */}
+        {section === "dashboard" && (
+          <Dashboard tenantSlug={tenantSlug} />
+        )}
+
+        {/* Apps section */}
+        {section === "apps" && !appKey && (
+          <AppDashboard tenantSlug={tenantSlug} />
+        )}
+
+        {/* Record list for a specific app */}
+        {section === "apps" && appKey && rtKey && !recordId && (
+          <RecordList
+            tenantSlug={tenantSlug}
+            appKey={appKey}
+            recordTypeKey={rtKey}
+          />
+        )}
+
+        {/* Record detail */}
+        {section === "apps" && recordId && (
+          <RecordDetail tenantSlug={tenantSlug} recordId={recordId} />
+        )}
+
+        {/* Builder — workspace tabs */}
+        {section === "builder" && (
+          <>
+            <WorkspaceTabs tabs={WORKSPACE_TABS} activeTab={activeTab} onTabChange={setActiveTab} />
+            {activeTab === "builder" && <VibeStudio tenantSlug={tenantSlug} />}
+            {activeTab === "graph" && <GraphTab tenantSlug={tenantSlug} />}
+            {activeTab === "agents" && <AgentPanel tenantSlug={tenantSlug} />}
+            {activeTab === "versions" && <ManageApps tenantSlug={tenantSlug} />}
+          </>
+        )}
+
+        {/* Standalone agent view */}
+        {section === "agents" && (
+          <AgentPanel tenantSlug={tenantSlug} />
+        )}
+
+        {/* Graph standalone view */}
+        {section === "graph" && (
+          <GraphTab tenantSlug={tenantSlug} />
+        )}
+
+        {/* Manage / Settings */}
+        {section === "manage" && (
+          <ManageApps tenantSlug={tenantSlug} />
+        )}
+      </WorkspaceLayout>
+
+      {cmdOpen && (
+        <CommandPalette
+          tenantSlug={tenantSlug}
+          onClose={() => setCmdOpen(false)}
+          onNavigate={(target) => {
+            handleNavigate(target);
+            setCmdOpen(false);
+          }}
+          onSwitchTenant={handleSwitchTenant}
+        />
+      )}
+    </>
+  );
+}
+
+function GraphTab({ tenantSlug }: { tenantSlug: string }) {
+  return (
+    <div>
+      <h2 style={{ margin: "0 0 1rem", fontSize: "1.25rem", fontWeight: 700 }}>
+        Graph Explorer
+      </h2>
+      <p style={{ color: "#666", fontSize: "0.85rem" }}>
+        Visual graph view of installed record types, workflows, and their relationships.
+        Edit graphs through the Builder tab.
+      </p>
+    </div>
   );
 }
 
 export default function App() {
   return (
     <Switch>
-      {/* Apps Dashboard */}
-      <Route path="/t/:tenantSlug/apps">
-        {(params) => (
-          <TenantLayout tenantSlug={params.tenantSlug} showContext>
-            <AppDashboard tenantSlug={params.tenantSlug} />
-          </TenantLayout>
-        )}
+      {/* Workspace */}
+      <Route path="/t/:tenantSlug/:rest*">
+        {(params) => <Workspace tenantSlug={params.tenantSlug} />}
+      </Route>
+      <Route path="/t/:tenantSlug">
+        {(params) => <Workspace tenantSlug={params.tenantSlug} />}
       </Route>
 
-      {/* Record List */}
-      <Route path="/t/:tenantSlug/apps/:appKey/records/:recordTypeKey">
-        {(params) => (
-          <TenantLayout tenantSlug={params.tenantSlug}>
-            <RecordList
-              tenantSlug={params.tenantSlug}
-              appKey={params.appKey}
-              recordTypeKey={params.recordTypeKey}
-            />
-          </TenantLayout>
-        )}
-      </Route>
-
-      {/* Record Detail */}
-      <Route path="/t/:tenantSlug/apps/:appKey/records/:recordTypeKey/:recordId">
-        {(params) => (
-          <TenantLayout tenantSlug={params.tenantSlug}>
-            <RecordDetail
-              tenantSlug={params.tenantSlug}
-              recordId={params.recordId}
-            />
-          </TenantLayout>
-        )}
-      </Route>
-
-      {/* Manage / Install */}
-      <Route path="/t/:tenantSlug/manage">
-        {(params) => (
-          <TenantLayout tenantSlug={params.tenantSlug}>
-            <ManageApps tenantSlug={params.tenantSlug} />
-          </TenantLayout>
-        )}
-      </Route>
-
-      {/* Build (Vibe Studio) */}
-      <Route path="/t/:tenantSlug/build">
-        {(params) => (
-          <TenantLayout tenantSlug={params.tenantSlug} showContext>
-            <VibeStudio tenantSlug={params.tenantSlug} />
-          </TenantLayout>
-        )}
-      </Route>
-
-      {/* Agents */}
-      <Route path="/t/:tenantSlug/agents">
-        {(params) => (
-          <TenantLayout tenantSlug={params.tenantSlug} showContext>
-            <AgentPanel tenantSlug={params.tenantSlug} />
-          </TenantLayout>
-        )}
-      </Route>
-
-      {/* Legacy route redirect */}
-      <Route path="/t/:tenantSlug/vibe">
-        {(params) => <Redirect to={`/t/${params.tenantSlug}/build`} />}
-      </Route>
-
-      {/* Dashboard */}
-      <Route path="/t/:tenantSlug/dashboard">
-        {(params) => (
-          <TenantLayout tenantSlug={params.tenantSlug}>
-            <Dashboard tenantSlug={params.tenantSlug} />
-          </TenantLayout>
-        )}
-      </Route>
-
-      {/* Landing — redirect to default tenant */}
+      {/* Landing */}
       <Route path="/">
         <Redirect to="/t/default/apps" />
       </Route>

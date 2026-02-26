@@ -1,382 +1,302 @@
-NORTH STAR (Reframed)
+🧭 EC3L Enterprise Layout Spec (Follow This Exactly)
+1️⃣ Global Top Bar
 
-We are evolving from:
+Minimal. Strategic. No clutter.
 
-Platform primitives + drafts + modules
+Left:
 
-To:
+Tenant selector (dropdown)
 
-Enterprise Vibe Coding System
-→ Agent-aware
-→ Tenant-safe
-→ Promotion-governed
-→ UX simple enough for builders
-→ Powerful enough for CIOs
+App name
 
-PHASE 1 — MAKE IT USABLE
-Sprint 1 — Builder Experience Simplification
-Goal
+Version badge (Draft / Installed / Promoted)
 
-Turn the current UI into a clear “Enterprise Builder Workspace”
-Remove cognitive overload.
-Establish mental model:
+Center:
 
-Tenant
+Command search (⌘K powered by cmdk)
 
-App
+Right:
 
-Draft
+Promote button
+
+Agent status indicator
+
+User avatar
+
+No breadcrumbs.
+No deep nesting.
+
+2️⃣ Left Navigation — App Context
+
+Collapsible.
+Radix-based.
+Icon + label.
+
+Sections:
+
+Dashboard
+
+Apps
+
+Agents
 
 Graph
 
-Agent
+Events
 
-Claude Prompt — Sprint 1
-We are evolving EC3L into an enterprise vibe-coding system.
+Settings
 
-Your task:
-Refactor the current UI into a clean "Enterprise Builder Workspace".
+Apps expands:
 
-Constraints:
-- Stateless control plane
-- URL-scoped tenancy
-- No client-supplied tenant IDs
-- Must preserve existing draft + graph + version infrastructure
+App list
 
-Design requirements:
+New App (AI)
 
-1. Introduce a 3-panel layout:
-   - Left: Tenant + App Navigator
-   - Center: Builder Canvas (Draft view)
-   - Right: Context Panel (Graph, Events, Agent status)
+Active app highlighted.
 
-2. Simplify terminology:
-   Replace technical internal labels with:
-   - "Apps"
-   - "Versions"
-   - "Promote"
-   - "Agents"
-   - "Graph"
+3️⃣ Main Canvas — Builder Surface
 
-3. Create a clear App Dashboard:
-   - List apps for tenant
-   - Show status: Draft / Installed / Promoted
-   - Show last modified
-   - Show agent status (inactive / running)
+This is the heart.
 
-4. Do NOT rewrite platform logic.
-   Only reorganize UI components and routes.
+Tabs (Radix Tabs):
 
-Output:
-- File modifications required
-- Component tree refactor
-- Updated routing structure
-- Any new components needed
-- No placeholders. Must integrate with current data hooks.
-Acceptance Criteria
+Builder
 
-Tenant switching remains intact
+Graph
 
-Draft versions visible
+Agents
 
-No raw technical identifiers shown
+Versions
 
-Cognitive load reduced
+Each tab feels like a workspace, not a page reload.
 
-PHASE 2 — VIBE CODING LAYER
+Use:
 
-Now we layer intelligence on top of primitives.
+react-resizable-panels
 
-Sprint 2 — Natural Language App Creation
-Goal
+motion transitions
 
-Allow user to type:
+Subtle background contrast shift
 
-“Build an employee onboarding workflow with approval and laptop provisioning”
+4️⃣ Right Context Panel
 
-System generates:
+This is where enterprise power lives.
 
-Draft module
+Context-sensitive.
 
-Graph nodes
+If in Builder:
 
-Workflow primitives
+Draft metadata
 
-Domain events
+Domain events emitted
 
-Using existing infrastructure.
+Promotion warnings
 
-Claude Prompt — Sprint 2
-We are adding a Natural Language App Builder.
+If in Graph:
 
-Goal:
-Allow user to input a structured natural-language prompt that generates:
+Node inspector
 
-- A new draft app
-- Graph nodes
-- Workflow definitions
-- Required domain events
+Connected events
 
-Constraints:
-- Must use existing draft + module creation services
-- Must emit proper domain events
-- Must respect tenant context
-- Must not bypass promotion model
+SLA policies
 
-Implementation requirements:
+If in Agents:
 
-1. Create a "New App (AI)" entry point in UI.
-2. Add backend endpoint:
-   POST /vibe/generate-app
-   Input:
-     { prompt: string }
-   Output:
-     Draft ID
+Event subscriptions
 
-3. Internally:
-   - Parse prompt into structured intent
-   - Map to:
-       - Entities
-       - Workflows
-       - Events
-       - Roles
+Execution policy
 
-4. Use deterministic transformation logic first.
-   No external LLM call required in this sprint.
-   Use rule-based generation.
+Logs
 
-5. Attach generated graph to draft.
+Panel must be collapsible.
 
-Output:
-- Backend endpoint implementation
-- Draft generation logic
-- Graph projection updates
-- UI integration
-- Domain event emission
-Acceptance Criteria
+🎯 UX Philosophy
 
-New draft created from text
+The Figma layout suggests:
 
-Graph renders correctly
+High contrast
 
-Version history preserved
+Soft radius
 
-Fully tenant-safe
+Layered dark backgrounds
 
-PHASE 3 — AGENT CONTROL PLANE
+No heavy borders
 
-Now we add the missing layer most systems fail at.
+Use elevation, not lines
 
-Sprint 3 — Agent Registration & Execution Model
-Goal
+Micro motion
 
-Introduce Agent definitions tied to apps.
+Hover transitions
 
-Agents:
+This must feel like:
 
-Listen to domain events
+“Modern control system”
+not
+“Old enterprise CRUD app”
 
-Execute workflows
+🚀 Now: Implementation Sprints to Align UI
 
-Emit events
+We will adjust your sprint plan to follow the Figma UX.
 
-Respect tenancy
-
-Log execution
-
-Claude Prompt — Sprint 3
-We are introducing the Agent Control Plane.
-
-Goal:
-Add first-class Agent definitions to EC3L.
+Sprint A — Structural Refactor to Figma Layout
+Claude Prompt
+We are aligning EC3L UI to the new Figma layout.
 
 Requirements:
 
-1. Create Agent model:
-   - id
-   - tenant_id
-   - app_id
-   - status (inactive, active, paused)
-   - subscribed_events[]
-   - execution_policy
-   - version
+1. Implement global 3-panel layout using:
+   - LeftNav
+   - MainCanvas
+   - RightContextPanel
 
-2. Agents must:
-   - Subscribe to domain events
-   - Execute workflow handlers
-   - Emit new domain events
+2. Use react-resizable-panels for:
+   - Adjustable left and right panes
 
-3. Add:
-   - agentRegistry.ts
-   - agentExecutionService.ts
+3. Add GlobalTopBar:
+   - Tenant selector
+   - App name
+   - Version badge
+   - Promote button
+   - Agent status
+   - Command palette trigger
 
-4. Agents must:
-   - Run in stateless fashion
-   - Derive tenant context server-side
-   - Never rely on client tenant headers
+4. Convert existing routes to workspace tabs:
+   - Builder
+   - Graph
+   - Agents
+   - Versions
 
-5. Add UI:
-   - Agent panel per app
-   - Toggle active/paused
-   - Show last execution
-   - Show event subscriptions
+5. Preserve:
+   - URL-scoped tenancy
+   - Draft/version state
+   - Promotion logic
+   - Domain events
+
+6. Do NOT change backend logic.
+   Only refactor UI structure.
 
 Output:
-- Data model changes
-- Migration required
-- Backend services
-- UI integration
-- Domain event integration
-Acceptance Criteria
+- File tree changes
+- Updated layout component
+- Updated route structure
+- Required imports from shadcn/ui
+Sprint B — Command-Driven UX (⌘K Everything)
 
-Agent can subscribe to event
+Enterprise vibe coding requires command-first.
 
-Event triggers execution
+Claude Prompt
+Add a global command palette using cmdk.
 
-Execution logged
+Must support:
+- Switch tenant
+- Switch app
+- Create app (AI)
+- Promote current draft
+- Toggle agent
+- Navigate tabs
 
-Agent respects tenant boundary
+Implementation:
+- Global CommandProvider
+- Keyboard shortcut (⌘K)
+- Actions mapped to existing services
 
-PHASE 4 — ENTERPRISE SAFETY
+Must respect tenant isolation.
+No client-supplied tenant IDs.
+Sprint C — Visual Graph Editor Alignment
 
-Now we prevent chaos.
+You already have graph.
 
-Sprint 4 — Promotion-Governed Agent Deployment
-Goal
+Now align visuals:
 
-Agents only activate when app version is promoted.
-
-No draft agents executing.
-
-Claude Prompt — Sprint 4
-We are hardening enterprise governance.
-
-Goal:
-Agents may only execute against promoted versions.
+Refactor graph UI to follow Figma aesthetic.
 
 Requirements:
+- Soft grid background
+- Rounded nodes
+- Shadow elevation
+- Node hover states
+- Event connectors animated
+- Right panel inspector
 
-1. Extend promotion system:
-   - When app promoted, agent version snapshot created
-   - Agents bound to installed graph snapshot
+Must integrate with existing graph snapshot system.
+No rewrite of graph engine.
+Sprint D — Agent Panel Redesign
 
-2. Draft agents must:
-   - Be editable
-   - Never execute
+Agents must feel like a control tower.
 
-3. Modify agentExecutionService:
-   - Validate agent version is installed
-   - Reject execution otherwise
+Refactor Agent UI to:
 
-4. UI:
-   - Clear visual difference:
-       Draft Agent
-       Installed Agent
-       Promoted Agent
+- Show status badges
+- Show event subscriptions
+- Show execution count
+- Show last run
+- Show bound version
 
-5. Emit domain event:
-   agent.version_installed
+Add toggle for active/paused.
+Visual difference between:
+- Draft agent
+- Installed agent
+- Promoted agent
+Sprint E — Dashboard View
 
-Output:
-- Service modifications
-- Guard clauses
-- UI state indicators
-- Tests
-Acceptance Criteria
+Use recharts (already installed).
 
-Draft cannot execute
-
-Installed version executes
-
-Promotion updates agent binding
-
-PHASE 5 — EXECUTIVE UX
-
-Now make it board-ready.
-
-Sprint 5 — Operational Dashboard
-Goal
-
-Enterprise visibility layer.
+Create tenant dashboard view.
 
 Show:
+- Events processed
+- Agent executions
+- Failures
+- Promotions over time
 
-Active agents
+Use recharts.
+No synthetic data.
+Must query existing domain event store.
+⚡ Critical Alignment With Your North Star
 
-Event throughput
+This Figma layout supports your:
 
-Workflow success rate
+Stateless control plane
 
-SLA breaches
+Multi-tenant isolation
 
-Error rates
+Draft → Installed → Promoted lifecycle
 
-Promotion history
+Agent orchestration
 
-Claude Prompt — Sprint 5
-We are building the Enterprise Operations Dashboard.
+Graph-first modeling
 
-Requirements:
+But only if:
 
-1. Create dashboard route per tenant.
-2. Show:
-   - Active agents count
-   - Events processed (24h)
-   - Failed executions
-   - Average workflow duration
-   - Promotion timeline
+You do NOT let the UI devolve into page-based routing chaos.
 
-3. Must use existing domain event store.
-4. No synthetic data.
-5. Charts simple but clean.
+This must feel:
 
-Output:
-- API endpoints
-- UI components
-- Queries required
-- Any index optimizations needed
-PHASE 6 — TRUE VIBE EXPERIENCE
+Workspace-based.
+Command-driven.
+Agent-aware.
+Promotion-governed.
 
-Now we make it magical.
+🧠 Final Strategic Advice
 
-Sprint 6 — Live Graph Editing + AI Refactor
-Goal
+You are not building:
 
-User edits graph visually.
-AI suggests improvements.
+“Another CRUD app builder.”
 
-Claude Prompt — Sprint 6
-We are adding visual graph editing.
+You are building:
 
-Requirements:
+The Enterprise Vibe Operating System
 
-1. Allow drag/drop node editing.
-2. Allow connecting events to workflows.
-3. On change:
-   - Update draft version
-   - Emit draft.modified event
+So the UI must communicate:
 
-4. Add:
-   "Refactor with AI" button
-   - Analyze graph
-   - Suggest:
-       - missing approvals
-       - redundant events
-       - unused nodes
+Power
 
-5. No external LLM in this sprint.
-   Use rule-based structural analysis.
+Control
 
-Output:
-- UI modifications
-- Draft update logic
-- Graph diff integration
-- Version bump behavior
-OVERALL STRATEGIC SEQUENCE
-Phase	Focus	Why
-1	Usability	Remove friction
-2	AI Builder	Deliver vibe coding
-3	Agent Model	Add intelligence
-4	Governance	Enterprise safety
-5	Visibility	CIO confidence
-6	Live Refactor	Competitive moat
+Intelligence
+
+Governance
+
+Safety
+
+All at once.
